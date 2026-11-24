@@ -340,7 +340,6 @@ else:
 
     cat_data = brand_catalog[menu]
 
-    # 좌측 메뉴(카테고리)를 바꾸면 선택된 브랜드 초기화
     if st.session_state.get("active_category") != menu:
         st.session_state["active_category"] = menu
         st.session_state["selected_brand"] = None
@@ -348,9 +347,6 @@ else:
 
     selected_brand = st.session_state.get("selected_brand")
 
-    # ==========================================================
-    # [화면 A] 1단계: 브랜드 선택 화면 (초기 진입 화면)
-    # ==========================================================
     if not selected_brand:
         st.header(cat_data["title"])
         st.markdown(cat_data["subtitle"])
@@ -373,9 +369,6 @@ else:
                             st.session_state["selected_model"] = b_info["models"][0]
                             st.rerun()
 
-    # ==========================================================
-    # [화면 B] 2단계: 선택한 브랜드의 대표 모델 및 실시간 상품 노출 화면
-    # ==========================================================
     else:
         b_info = cat_data["brands"][selected_brand]
 
@@ -399,4 +392,26 @@ else:
             value=st.session_state.get("selected_model", b_info["models"][0])
         )
 
-        with
+        with st.spinner(f"'{current_query}' 실시간 쇼핑몰 최저가 상품을 불러오는 중입니다..."):
+            deals = fetch_live_shop_deals(current_query)
+
+        if deals:
+            st.success(f"✅ '{current_query}' 실시간 최저가 상품 {len(deals)}건")
+            cols = st.columns(3)
+            for idx, prod in enumerate(deals):
+                with cols[idx % 3]:
+                    with st.container(border=True):
+                        st.image(prod["img_url"], use_container_width=True)
+                        st.markdown(f"<span class='discount-badge'>시세 대비 -{prod['discount_pct']}% 특가</span>", unsafe_allow_html=True)
+                        st.markdown(f"**{prod['name'][:45]}{'...' if len(prod['name']) > 45 else ''}**")
+                        st.markdown(
+                            f"<span class='orig-price'>{prod['orig_price']:,}원</span><br>"
+                            f"<span class='sale-price'>{prod['sale_price']:,}원</span>",
+                            unsafe_allow_html=True
+                        )
+                        st.write("")
+                        st.link_button("🛒 최저가 구매하기 (제휴 특가)", prod["affiliate_url"], use_container_width=True)
+                        if is_pro:
+                            st.link_button("📊 다나와 가격추이 원문 보기", prod["source_url"], use_container_width=True)
+        else:
+            st.warning("현재 검색어에 대한 실시간 가격비교 결과를 불러오지 못했습니다. 위 다른 라인업 버튼을 눌러보세요.")
